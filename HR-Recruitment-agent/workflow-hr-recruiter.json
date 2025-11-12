@@ -1,0 +1,179 @@
+{
+  "name": "AI Recruiter - Gmail Automation",
+  "nodes": [
+    {
+      "id": "gmailTrigger001",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "credentials": {
+        "gmailOAuth2Api": {
+          "id": "",
+          "name": "YOUR_GMAIL_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "id": "extractPDF001",
+      "name": "Extract Resume Text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [250, 0],
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "data"
+      }
+    },
+    {
+      "id": "aggregate001",
+      "name": "Aggregate Resume Texts",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 1,
+      "position": [500, 0],
+      "parameters": {
+        "fieldToAggregate": "text",
+        "destinationFieldName": "resumeTexts"
+      }
+    },
+    {
+      "id": "setJD001",
+      "name": "Extract Job Description",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [750, 0],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "jobDescription",
+              "value": "={{$json.text || ''}}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "aiRecruiter001",
+      "name": "AI Recruiter Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [1000, 0],
+      "parameters": {
+        "promptType": "define",
+        "text": "=Job Description:\n{{ $json.jobDescription }}\n\nResume Texts:\n{{ $json.resumeTexts }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "<<< PASTE AI RECRUITER SYSTEM PROMPT HERE >>>"
+        }
+      }
+    },
+    {
+      "id": "openAI001",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [1000, 200],
+      "parameters": {
+        "model": {
+          "value": "gpt-4.1-mini"
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "",
+          "name": "YOUR_OPENAI_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "id": "format001",
+      "name": "Format Final Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 0],
+      "parameters": {
+        "jsCode": "return [{ json: $json }];"
+      }
+    }
+  ],
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Resume Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Resume Text": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Resume Texts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Resume Texts": {
+      "main": [
+        [
+          {
+            "node": "Extract Job Description",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Job Description": {
+      "main": [
+        [
+          {
+            "node": "AI Recruiter Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Recruiter Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Recruiter Agent": {
+      "main": [
+        [
+          {
+            "node": "Format Final Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "33333333-3333-3333-3333-333333333333",
+  "id": "44444444-4444-4444-4444-444444444444",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
